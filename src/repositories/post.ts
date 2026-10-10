@@ -1,53 +1,26 @@
-import type { Post } from "../domain/post/entity.js"
-import type { PostRepositoryContract } from "../domain/post/repository.js"
+import type { CreatePostInput, PostRepositoryContract } from "../domain/post/repository.js"
 
-export function createPostRepository(): PostRepositoryContract {
-    let posts: Post[] = [
-        {
-            id: 1,
-            title: "Python",
-            content: "You can start learning python by watching video on Yotube",
-            author: "Andrii",
-            category: "programming"
-        },
-        {
-            id: 2,
-            title: "What is Node.js?",
-            content: "Node.js allows you to run JavaScript outside the browser",
-            author: "Lera",
-            category: "programming"
-        },
-        {
-            id: 3,
-            title: "My favorite game",
-            content: "Dota 2 is my favorite game",
-            author: "Egor",
-            category: "games"
-        }
-    ]
+type Database = typeof import("../prisma/db.ts").db
 
-    function getAllPosts(category?: string, take?: number) {
-        let result = [...posts]
+export function createPostRepository(database: Database): PostRepositoryContract {
+    async function getAllPosts(category?: string, take?: number) {
+        const posts = database.orm.public.Post.orderBy((post) => post.id.asc())
+
         if (category) {
-            result = result.filter((post) => post.category === category)
+            const filtered = posts.where({ category })
+            return take ? filtered.limit(take).all() : filtered.all()
         }
-        if (take) {
-            result = result.slice(0, take)
-        }
-        return result
+
+        return take ? posts.limit(take).all() : posts.all()
     }
 
-    function findPostById(id: number) {
-        return posts.find((post) => post.id === id)
+    async function findPostById(id: number) {
+        const post = await database.orm.public.Post.where({ id }).first()
+        return post ?? undefined
     }
 
-    async function createPost(post: Post) {
-        return new Promise<Post>((resolve, reject) => {
-            setTimeout(() => {
-                posts = [...posts, post]
-                resolve(post)
-            }, 1000)
-        })
+    async function createPost(post: CreatePostInput) {
+        return database.orm.public.Post.create(post)
     }
 
     return { getAllPosts, findPostById, createPost }

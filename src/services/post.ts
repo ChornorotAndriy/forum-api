@@ -13,16 +13,7 @@ export function createPostService(postRepository: PostRepositoryContract): PostS
     async function createNewPost(data: CreatePostInput) {
         const { title, content, author, category } = data
 
-        const posts = postRepository.getAllPosts()
-        const post = {
-            id: posts.length + 1,
-            title: title,
-            content: content,
-            author: author,
-            category: category
-        }
-
-        return postRepository.createPost(post)
+        return postRepository.createPost({ title, content, author, category })
     }
 
     return { getPosts, findPost, createNewPost }
