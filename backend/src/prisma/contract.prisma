@@ -1,0 +1,27 @@
+// use prisma-8
+
+model User {
+  id              Int              @id @default(autoincrement())
+  email           String           @unique
+  passwordHash    String
+  posts           Post[]
+  refreshSessions RefreshSession[]
+}
+
+model Post {
+  id       Int    @id @default(autoincrement())
+  title    String
+  content  String
+  category String
+  authorId Int
+  author   User   @relation(fields: [authorId], references: [id])
+}
+
+model RefreshSession {
+  id        Int      @id @default(autoincrement())
+  tokenHash String   @unique
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+}

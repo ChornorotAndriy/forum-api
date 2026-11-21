@@ -1,0 +1,34 @@
+{
+  "name": "forum-api",
+  "version": "1.0.0",
+  "description": "Forum API (Express, Router-Handler-Service-Repository)",
+  "main": "src/server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node src/app.ts",
+    "dev": "tsx watch src/app.ts",
+    "contract:emit": "prisma contract emit"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "@prisma/orm-postgres": "^8.0.0-rc.17",
+    "argon2": "^0.45.1",
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^18.0.7",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "typescript": "^7.0.2"
+  },
+  "devDependencies": {
+    "@prisma/cli-engine": "^0.7.0",
+    "@types/cookie-parser": "^1.4.10",
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^26.6.4",
+    "prisma": "^8.0.0-rc.22",
+    "tsx": "^4.23.15"
+  }
+}
