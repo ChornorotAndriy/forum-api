@@ -16,6 +16,10 @@ export interface AuthHandlerContract {
         req: Request,
         res: Response<MessageResponse | ErrorResponse>
     ) => Promise<void>
+    logout: (
+        req: Request,
+        res: Response<MessageResponse | ErrorResponse>
+    ) => Promise<void>
     me: (
         req: Request,
         res: Response<UserResponse | ErrorResponse>

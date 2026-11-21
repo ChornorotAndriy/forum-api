@@ -1,21 +1,33 @@
+import type { RefreshSessionRepositoryContract } from "../domain/refresh-session/repository.js"
 import type { UserRepositoryContract } from "../domain/user/repository.js"
 import type {
     AuthServiceContract,
     PasswordHasherContract,
+    RefreshTokenHasherContract,
     TokenSignerContract,
     TokenVerifierContract,
 } from "./auth.types.js"
 
 export function createAuthService(
     userRepository: UserRepositoryContract,
+    refreshSessionRepository: RefreshSessionRepositoryContract,
     passwordHasher: PasswordHasherContract,
     tokenSigner: TokenSignerContract,
     tokenVerifier: TokenVerifierContract,
+    refreshTokenHasher: RefreshTokenHasherContract,
 ): AuthServiceContract {
-    function issueTokens(userId: number) {
+    async function issueTokens(userId: number) {
+        const refreshToken = tokenSigner.signRefreshToken(userId)
+
+        await refreshSessionRepository.create({
+            userId,
+            tokenHash: refreshTokenHasher.hashRefreshToken(refreshToken),
+            expiresAt: tokenSigner.getRefreshTokenExpiresAt(),
+        })
+
         return {
             accessToken: tokenSigner.signAccessToken(userId),
-            refreshToken: tokenSigner.signRefreshToken(userId),
+            refreshToken,
         }
     }
 
@@ -39,19 +51,54 @@ export function createAuthService(
 
         return {
             user: { id: user.id, email: user.email },
-            ...issueTokens(user.id),
+            ...(await issueTokens(user.id)),
         }
     }
 
     async function refresh(refreshToken: string) {
         const userId = tokenVerifier.verifyRefreshToken(refreshToken)
+        const oldTokenHash = refreshTokenHasher.hashRefreshToken(refreshToken)
+
+        const session = await refreshSessionRepository.getByTokenHash(oldTokenHash)
+        if (!session || session.userId !== userId) {
+            throw new Error("INVALID_REFRESH_TOKEN")
+        }
+
+        if (session.expiresAt.getTime() <= Date.now()) {
+            await refreshSessionRepository.deleteByTokenHash(oldTokenHash)
+            throw new Error("INVALID_REFRESH_TOKEN")
+        }
 
         const user = await userRepository.getById(userId)
         if (!user) {
             throw new Error("INVALID_REFRESH_TOKEN")
         }
 
-        return issueTokens(user.id)
+        const newRefreshToken = tokenSigner.signRefreshToken(user.id)
+
+        const rotated = await refreshSessionRepository.rotate(
+            oldTokenHash,
+            refreshTokenHasher.hashRefreshToken(newRefreshToken),
+            tokenSigner.getRefreshTokenExpiresAt(),
+        )
+        if (!rotated) {
+            throw new Error("INVALID_REFRESH_TOKEN")
+        }
+
+        return {
+            accessToken: tokenSigner.signAccessToken(user.id),
+            refreshToken: newRefreshToken,
+        }
+    }
+
+    async function logout(refreshToken?: string) {
+        if (!refreshToken) {
+            return
+        }
+
+        await refreshSessionRepository.deleteByTokenHash(
+            refreshTokenHasher.hashRefreshToken(refreshToken),
+        )
     }
 
     async function me(userId: number) {
@@ -63,5 +110,5 @@ export function createAuthService(
         return { id: user.id, email: user.email }
     }
 
-    return { register, login, refresh, me }
+    return { register, login, refresh, logout, me }
 }

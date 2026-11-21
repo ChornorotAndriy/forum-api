@@ -2,8 +2,16 @@ import express from "express"
 import cookieParser from "cookie-parser"
 import { db } from "./prisma/db.js"
 import { hashPassword, verifyPassword } from "./lib/password.js"
-import { signAccessToken, signRefreshToken, verifyAccessToken, verifyRefreshToken } from "./lib/jwt.js"
+import {
+    getRefreshTokenExpiresAt,
+    hashRefreshToken,
+    signAccessToken,
+    signRefreshToken,
+    verifyAccessToken,
+    verifyRefreshToken,
+} from "./lib/jwt.js"
 import { createPostRepository } from "./repositories/post.js"
+import { createRefreshSessionRepository } from "./repositories/refresh-session.js"
 import { createUserRepository } from "./repositories/user.js"
 import { createPostService } from "./services/post.js"
 import { createAuthService } from "./services/auth.js"
@@ -19,11 +27,14 @@ const HOST = "localhost"
 const app = express()
 
 const userRepository = createUserRepository(db)
+const refreshSessionRepository = createRefreshSessionRepository(db)
 const authService = createAuthService(
     userRepository,
+    refreshSessionRepository,
     { hashPassword, verifyPassword },
-    { signAccessToken, signRefreshToken },
+    { signAccessToken, signRefreshToken, getRefreshTokenExpiresAt },
     { verifyAccessToken, verifyRefreshToken },
+    { hashRefreshToken },
 )
 const authHandler = createAuthHandler(authService)
 const requireAuth = createRequireAuth(verifyAccessToken)

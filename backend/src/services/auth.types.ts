@@ -18,6 +18,7 @@ export interface PasswordHasherContract {
 export interface TokenSignerContract {
     signAccessToken: (userId: number) => string
     signRefreshToken: (userId: number) => string
+    getRefreshTokenExpiresAt: () => Date
 }
 
 export interface TokenVerifierContract {
@@ -25,9 +26,14 @@ export interface TokenVerifierContract {
     verifyRefreshToken: (token: string) => number
 }
 
+export interface RefreshTokenHasherContract {
+    hashRefreshToken: (token: string) => string
+}
+
 export interface AuthServiceContract {
     register: (data: AuthCredentials) => Promise<PublicUser>
     login: (data: AuthCredentials) => Promise<{ user: PublicUser } & AuthTokens>
     refresh: (refreshToken: string) => Promise<AuthTokens>
+    logout: (refreshToken?: string) => Promise<void>
     me: (userId: number) => Promise<PublicUser>
 }

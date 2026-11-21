@@ -6,25 +6,29 @@ import type { AuthHandlerContract } from "./auth.types.js"
 const ACCESS_COOKIE_MAX_AGE = 15 * 60 * 1000
 const REFRESH_COOKIE_MAX_AGE = 7 * 24 * 60 * 60 * 1000
 
-function setAuthCookies(res: Response, tokens: AuthTokens) {
-    const base = {
-        httpOnly: true,
-        sameSite: "lax",
-        secure: process.env.NODE_ENV === "production",
-    } as const
+const cookieBaseOptions = {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+} as const
 
+function setAuthCookies(res: Response, tokens: AuthTokens) {
     res.cookie("accessToken", tokens.accessToken, {
-        ...base,
+        ...cookieBaseOptions,
         maxAge: ACCESS_COOKIE_MAX_AGE,
         path: "/",
     })
 
-
     res.cookie("refreshToken", tokens.refreshToken, {
-        ...base,
+        ...cookieBaseOptions,
         maxAge: REFRESH_COOKIE_MAX_AGE,
         path: "/auth",
     })
+}
+
+function clearAuthCookies(res: Response) {
+    res.clearCookie("accessToken", { ...cookieBaseOptions, path: "/" })
+    res.clearCookie("refreshToken", { ...cookieBaseOptions, path: "/auth" })
 }
 
 function parseCredentials(body: Partial<AuthCredentialsRequest> | undefined) {
@@ -109,6 +113,22 @@ export function createAuthHandler(authService: AuthServiceContract): AuthHandler
 
                 console.error(error)
                 res.status(500).json({ message: "Failed to refresh tokens" })
+            }
+        },
+
+        async logout(req, res) {
+            const refreshToken = req.cookies?.refreshToken
+
+            try {
+                await authService.logout(
+                    typeof refreshToken === "string" && refreshToken ? refreshToken : undefined,
+                )
+
+                clearAuthCookies(res)
+                res.status(200).json({ message: "Logged out" })
+            } catch (error) {
+                console.error(error)
+                res.status(500).json({ message: "Failed to logout" })
             }
         },
 

@@ -7,6 +7,7 @@ export function createAuthRouter(authHandler: AuthHandlerContract, requireAuth: 
     authRouter.post("/register", authHandler.register)
     authRouter.post("/login", authHandler.login)
     authRouter.post("/refresh", authHandler.refresh)
+    authRouter.post("/logout", authHandler.logout)
 
     authRouter.get("/me", requireAuth, authHandler.me)
 
